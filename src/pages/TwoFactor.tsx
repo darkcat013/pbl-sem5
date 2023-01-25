@@ -1,4 +1,3 @@
-import * as React from 'react';
 import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
 import Box from '@mui/material/Box';
@@ -6,33 +5,27 @@ import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
 import { StyledTextField } from '../components/styled-components';
-import { Dispatch, useState } from 'react';
+import { useState } from 'react';
 import * as Yup from 'yup';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { ErrorMessage } from '@hookform/error-message'
 import unauthorizedAxios from '../api/unauthorizedAxios';
 import { useNavigate } from 'react-router-dom';
-import { getTokenUser } from '../utils/user';
-import { setAccessToken } from '../utils/tokens';
+import { getAccessToken, setAccessToken, setRefreshToken } from '../utils/tokens';
+import { useAuthStore } from '../contexts/AuthContex';
 
 const fields = {
-  email: 'email',
-  password: 'password'
+  otp: 'otp'
 }
 
-const loginValidationSchema = Yup.object().shape({
-  email: Yup.string()
-    .required('Email is required')
-    .email('Email is invalid'),
-  password: Yup.string()
-    .required('Password is required')
-    .min(6, 'Password must be at least 6 characters')
-    .max(40, 'Password must not exceed 40 characters')
+const twofaValidationSchema = Yup.object().shape({
+  otp: Yup.string()
+    .length(6, "Password is 6 digits long")
 });
 
-const Login: React.FC<{ set2fa: Dispatch<React.SetStateAction<Boolean>> }> = ({ set2fa }) => {
-
+const TwoFactor = () => {
+  const authStore = useAuthStore();
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const navigate = useNavigate()
 
@@ -44,18 +37,21 @@ const Login: React.FC<{ set2fa: Dispatch<React.SetStateAction<Boolean>> }> = ({ 
     clearErrors,
     formState: { errors }
   } = useForm({
-    resolver: yupResolver(loginValidationSchema)
+    resolver: yupResolver(twofaValidationSchema)
   });
 
   const onSubmit = async data => {
     setIsLoading(true)
     //await delay(1000);
     unauthorizedAxios
-      .post(`users/login`, { email: data.email, password: data.password })
+      .post(`users/twofactor`, { totp_token: data.otp }, {
+        headers: { Authorization: `Bearer ${getAccessToken()}` }
+      })
       .then((response) => {
-        setAccessToken(response.data)
-        set2fa(true)
-        navigate("/2fa")
+        setAccessToken(response.data.access_token)
+        setRefreshToken(response.data.refresh_token)
+        authStore.setLoggedIn(true)
+        navigate("/profile")
       })
       .catch((err) => {
         const formError = { type: "server", message: err.response?.data?.error ? err.response.data.error : err.message }
@@ -80,7 +76,7 @@ const Login: React.FC<{ set2fa: Dispatch<React.SetStateAction<Boolean>> }> = ({ 
           <LockOutlinedIcon />
         </Avatar>
         <Typography component="h1" variant="h5">
-          Login
+          Two Factor Authentication
         </Typography>
         <Box sx={{ mt: 1 }}>
           <Typography sx={{ color: 'error.main' }}>
@@ -90,27 +86,14 @@ const Login: React.FC<{ set2fa: Dispatch<React.SetStateAction<Boolean>> }> = ({ 
             margin="normal"
             required
             fullWidth
-            id={fields.email}
-            label="Email Address"
-            name={fields.email}
-            autoComplete="email"
+            id={fields.otp}
+            label="One time password"
+            name={fields.otp}
             autoFocus
-            {...register(fields.email)}
-            error={!!errors.email}
-            helperText={errors.email && errors.email.message.toString()}
-          />
-          <StyledTextField
-            margin="normal"
-            required
-            fullWidth
-            name={fields.password}
-            label="Password"
-            type="password"
-            id={fields.password}
-            autoComplete="current-password"
-            {...register(fields.password)}
-            error={!!errors.password}
-            helperText={errors.password && errors.password.message.toString()}
+            {...register(fields.otp)}
+            error={!!errors.otp}
+            helperText={errors.otp && errors.otp.message.toString()}
+            placeholder='XXXXXX'
           />
           <Button
             type="submit"
@@ -120,7 +103,7 @@ const Login: React.FC<{ set2fa: Dispatch<React.SetStateAction<Boolean>> }> = ({ 
             onClick={handleSubmit(onSubmit)}
             disabled={isLoading}
           >
-            Login
+            Submit
           </Button>
         </Box>
       </Box>
@@ -128,4 +111,4 @@ const Login: React.FC<{ set2fa: Dispatch<React.SetStateAction<Boolean>> }> = ({ 
   );
 }
 
-export default Login
+export default TwoFactor

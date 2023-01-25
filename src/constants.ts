@@ -1,9 +1,14 @@
 export const roles = {
-    director: "director",
-    teacher: "teacher",
-    student: "student"
+    admin: 1,
+    director: 2,
+    schoolManager:3,
+    headManager: 4,
+    teacher: 5,
+    student: 6
 }
 
 export const localStorageKeys = {
-    role: "role"
+    role: "role",
+    accessToken: "access_token",
+    refreshToken: "refresh_token"
 }

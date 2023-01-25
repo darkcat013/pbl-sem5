@@ -5,12 +5,19 @@ import { ThemeProvider } from '@emotion/react'
 import theme from './theme'
 import { CssBaseline } from '@mui/material'
 import { RouterProvider } from 'react-router-dom'
+import { AuthProvider } from './contexts/AuthContex'
+import { AdapterMoment } from '@mui/x-date-pickers/AdapterMoment';
+import { LocalizationProvider } from '@mui/x-date-pickers'
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <App />
-    </ThemeProvider>
+    <AuthProvider>
+      <LocalizationProvider dateAdapter={AdapterMoment}>
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <App />
+        </ThemeProvider>
+      </LocalizationProvider>
+    </AuthProvider>
   </React.StrictMode>,
 )
